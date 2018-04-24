@@ -39,12 +39,12 @@ class Topic extends Model
      */
     public function forum()
     {
-        return $this->belongsTo(\App\Forum::class);
+        return $this->belongsTo(Forum::class);
     }
 
     public function posts()
     {
-        return $this->hasMany(\App\Post::class);
+        return $this->hasMany(Post::class);
     }
 
     public function viewable()

@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\PrivateMessage;
 use App\User;
+use Illuminate\Database\Eloquent\Model;
 
 class TaggedUserRepository
 {
@@ -33,9 +34,45 @@ class TaggedUserRepository
     }
 
     /**
-     * @param string $content The content string to search for usernames in
-     * @param string $subject The subject of the message sent to the user
-     * @param string $message The message body of the message sent to the user
+     * @param $users array|User An array of user objects OR a single user object
+     * @param $subject
+     * @param $message
+     * @return bool
+     */
+    public function messageUsers($users, $subject, $message)
+    {
+        // Array of User objects
+        if (is_array($users)) {
+            foreach ($users as $user) {
+                if ($this->validate($user)) {
+                    $this->message->create([
+                        'sender_id' => 1,
+                        'reciever_id' => $user->id,
+                        'subject' => $subject,
+                        'message' => $message
+                    ]);
+                }
+            }
+
+            return true;
+        }
+
+        // A single User object
+        if ($this->validate($users)) {
+            $this->message->create([
+                'sender_id' => 1,
+                'reciever_id' => $users->id,
+                'subject' => $subject,
+                'message' => $message
+            ]);
+        }
+        return true;
+    }
+
+    /**
+     * @param string $content
+     * @param string $subject
+     * @param string $message
      */
     public function messageTaggedUsers(string $content, string $subject, string $message)
     {
@@ -43,18 +80,11 @@ class TaggedUserRepository
 
         foreach ($tagged[0] as $username) {
             $tagged_user = $this->user->where('username', str_replace('@', '', $username))->first();
+            $this->messageUsers($tagged_user, $subject, $message);
 
-            if ($tagged_user) {
-                if ($this->debug || $tagged_user->id !== auth()->user()->id) {
-                    $this->message->create([
-                        'sender_id' => 1,
-                        'reciever_id' => $tagged_user->id,
-                        'subject' => $subject,
-                        'message' => $message
-                    ]);
-                }
-            }
         }
+
+        return true;
     }
 
     /**
@@ -71,5 +101,14 @@ class TaggedUserRepository
     public function setDebug(bool $debug): void
     {
         $this->debug = $debug;
+    }
+
+    protected function validate($user)
+    {
+        if (!$this->debug || $user->id === auth()->user()->id) {
+            return false;
+        }
+
+        return true;
     }
 }
